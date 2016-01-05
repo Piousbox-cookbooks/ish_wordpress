@@ -19,6 +19,9 @@ node.default['wordpress']['db']['user']          = app['databases'][node.chef_en
 node.default['wordpress']['db']['pass']          = app['databases'][node.chef_environment]['password']
 node.default['wordpress']['db']['password']      = app['databases'][node.chef_environment]['password']
 node.default['wordpress']['db']['host']          = app['databases'][node.chef_environment]['host']
+node.default['wordpress']['server_name']         = app['domains'][node.chef_environment][0]
+node.default['wordpress']['server_aliases']      = app['domains'][node.chef_environment][1..-1]
+
 user                                             = app['user'][node.chef_environment]
 mysql_user                                       = app['databases'][node.chef_environment]['username']
 mysql_password                                   = app['databases'][node.chef_environment]['password']
