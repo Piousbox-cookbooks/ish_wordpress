@@ -32,7 +32,7 @@ aws_secret                                       = app['aws_secret'][node.chef_e
 restore_name                                     = app['restore_name'][node.chef_environment] # YYYYMMDD.db_name
 restore_path                                     = "ish-backups/sql_backup/#{restore_name}.sql.tar.gz"
 document_root                                    = app['document_root'][node.chef_environment]
-
+projects_dir                                     = "/home/#{user}/projects"
 
 include_recipe "wordpress::default"
 
@@ -54,12 +54,15 @@ template "#{document_root}/wp-config.php" do
   })
 end
 
-
-# create database if missing
-# migrate old dataz
+#
+# NEVER RUNS!
+# migrate data
+# ONLY IF database does not exist
+#
 execute   "restore data" do
-  cwd     "/home/#{user}/projects"
+  cwd     projects_dir
   not_if  "mysql -u#{mysql_user} -p#{mysql_password} -h #{mysql_host} -se'USE #{mysql_database};' 2>&1"
+  only_if false
   command <<-EOL
 rm -f *sql* ; \
 echo "create database #{mysql_database}" > trash.sql && \
@@ -73,6 +76,34 @@ end
 
 
 
+#
+# configure FoundationPress
+#
+execute "clone FoundationPress" do
+  cwd "#{document_root}/wp-content/themes"
+  command "git clone https://github.com/piousbox/FoundationPress.git"
+  not_if { ::File.exists?( "#{document_root}/wp-content/themes/FoundationPress" ) }
+end
+execute "update FoundationPress" do
+  cwd "#{document_root}/wp-content/themes/FoundationPress"
+  command "git pull origin master"
+end
+
+execute "get wp cli" do
+  cwd document_root
+  command "curl -O https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar"
+  not_if { ::File.exists?( "#{document_root}/wp-cli.phar" ) }
+end
+
+execute "activate FoundationPress" do
+  cwd document_root
+  user user
+  command "php wp-cli.phar theme activate FoundationPress"
+end
+
+service "apache2" do
+  action :reload
+end
 
 
 
